@@ -53,16 +53,41 @@ bool updateSell(float amount, wallet* wallet1, int currentPriceBTC) {
         return true;
     }
     else {
-        printf("You dont even have that many coins, man!");
+        printf("You dont even have that many coins, man!\n");
         return false;
     }
 }
 
 // call function that prints transactions in linked list inside ledger
+void printLedger(ledger* head) {
+     ledger *tmp = head; // ptr tmp hold the head of list
+     while (tmp != NULL) {
+          printf("%s\n", tmp->transactions); // print out head
+          tmp = tmp->next; // then go to next node until you reach one with NULL, stop
+     }
+}
 
 
 // store transactions strings (maybe take the printf("bought ### BTC on DATE"); and turn that into a string and also use for record in linked list
+ledger *addTransactions(ledger* head, char* transactionRecord) {
+     ledger* newRecord = (ledger*) malloc(sizeof(ledger));
+     if (newRecord == NULL) {
+          printf("Couldn't allocate memory for newRecord");
+          exit(1);
+     }
 
+     // Create a seperate buffer for transactionRecord so it wont overwrite previous records
+     newRecord->transactions = malloc(strlen(transactionRecord) + 1); // each transaction record has its own block of memory
+     if (newRecord->transactions == NULL) {
+          printf("Couldn't make memory for transaction record");
+          exit(1);
+     }
+
+     strcpy(newRecord->transactions, transactionRecord);
+
+     newRecord->next = head;
+     return newRecord;
+}
 
 
 int main (void) {
@@ -72,9 +97,17 @@ int main (void) {
     myWallet.tickerSymbol = "BTC";
     myWallet.currentCoins = 0;
 
+    ledger *head = NULL;
+
+
     char input[20];
     char command[10];
     float amount;
+
+    char* transactionRecord = malloc(100 * sizeof(char)); // This is just to store memory for our snprintf
+    if (transactionRecord == NULL) {
+         exit(1);
+    }
 
     printf("Welcome to BTC Trader!\n");
     while (1) {
@@ -90,8 +123,9 @@ int main (void) {
 
                 if (updateBuy(amount, &myWallet, currentPrice) == true) { // if buy is successful
                     // get date, create transaction string, add transaction string to ledger
-                    printf("Bought %.2f coins of %s\n", amount, myWallet.tickerSymbol);
-
+                    printf("Bought %.2f coins of %s on %s", amount, myWallet.tickerSymbol, Date());
+                     snprintf(transactionRecord, 100, "Bought %.2f coins of %s on %s", amount, myWallet.tickerSymbol, Date()); // Store and make this the record
+                     head = addTransactions(head, transactionRecord); // Head is still NULL bc of the top of main and then becomes the head after call
                 }
 
 
@@ -102,10 +136,10 @@ int main (void) {
                 int currentPrice = getLive();
 
                 if (updateSell(amount, &myWallet, currentPrice) == true) {
-
+                    printf("Sold %.2f coins of %s on %s", amount, myWallet.tickerSymbol, Date());
                     // get date, create transaction string, add transaction string to ledger
-
-                    printf("Sold %.2f coins of %s\n", amount, myWallet.tickerSymbol);
+                    snprintf(transactionRecord, 100, "Sold %.2f coins of %s on %s", amount, myWallet.tickerSymbol, Date());
+                    head = addTransactions(head, transactionRecord); // Head is still NULL bc of the top of main and then becomes the head after call
                 }
 
             }
@@ -121,9 +155,10 @@ int main (void) {
             else if (strcmp(command, "history") == 0) {
                 // call function that prints transactions in linked list inside ledger
                 printf("Transaction history is: \n");
+                 printLedger(head);
             }
             else if(strcmp(command, "balance") == 0) {
-                printf("Current balance is: $%lf \n", myWallet.cashBank);
+                printf("Current balance is: $%.2f \n", myWallet.cashBank);
                 printf("Current # of %s: %lf\n", myWallet.tickerSymbol, myWallet.currentCoins);
                 int currentValue;
                 currentValue = getLive() * myWallet.currentCoins;
